@@ -29,7 +29,7 @@ namespace Cabanoss.API.Controllers
         [HttpPut]
         public async System.Threading.Tasks.Task<UserDto> PutUser([FromBody] UpdateUserDto user)
         {
-            var updatedUser = await _userService.UpdateUserAsync(User, user);
+            var updatedUser = await _userService.UpdateUserAsync(user);
             return updatedUser;
         }
 
@@ -42,7 +42,7 @@ namespace Cabanoss.API.Controllers
         [HttpGet]
         public async Task<UserDto> GetUser()
         {
-            var userDto =await _userService.GetUserAsync(User);
+            var userDto =await _userService.GetUserAsync();
             return userDto;
         }
 
@@ -68,7 +68,7 @@ namespace Cabanoss.API.Controllers
         [HttpDelete]
         public async System.Threading.Tasks.Task DeleteUser()
         {
-            await _userService.RemoveUserAsync(User);
+            await _userService.RemoveUserAsync();
         }
     }
 }

@@ -30,7 +30,7 @@ namespace Cabanoss.API.Controllers
         [HttpPost("elements/tasks")]
         public async Task AddElement([FromQuery] int taskId, [FromBody] ElementDto elementDto)
         {
-            await _elementService.AddElement(taskId, elementDto, User);
+            await _elementService.AddElement(taskId, elementDto);
         }
 
         /// <summary>
@@ -44,7 +44,7 @@ namespace Cabanoss.API.Controllers
         [HttpPut("elements")]
         public async Task UpdateElement([FromQuery] int elementId, [FromBody] UpdateElementDto updateElementDto)
         {
-            await _elementService.UpdateElement(elementId, updateElementDto, User);
+            await _elementService.UpdateElement(elementId, updateElementDto);
         }
 
         /// <summary>
@@ -57,7 +57,7 @@ namespace Cabanoss.API.Controllers
         [HttpGet("elements/tasks")]
         public async Task<List<ResponseElementDto>> GetElements([FromQuery] int taskId)
         {
-            var elements = await _elementService.GetElements(taskId, User);
+            var elements = await _elementService.GetElements(taskId);
             return elements;
         }
 
@@ -71,7 +71,7 @@ namespace Cabanoss.API.Controllers
         [HttpGet("elements")]
         public async Task<ResponseElementDto> GetElement([FromQuery] int elementId)
         {
-            var element = await _elementService.GetElement(elementId, User);
+            var element = await _elementService.GetElement(elementId);
             return element;
         }
 
@@ -85,7 +85,7 @@ namespace Cabanoss.API.Controllers
         [HttpDelete("elements")]
         public async Task DeleteElement([FromQuery] int elementId)
         {
-            await _elementService.DeleteElement(elementId, User);
+            await _elementService.DeleteElement(elementId);
         }
 
         /// <summary>
@@ -99,7 +99,7 @@ namespace Cabanoss.API.Controllers
         [HttpPost("members/elements/{elementId}")]
         public async Task AddUserToElement([FromRoute] int elementId, [FromQuery] int userId)
         {
-            await _elementService.AddUserToElement(elementId, userId, User);
+            await _elementService.AddUserToElement(elementId, userId);
         }
 
         /// <summary>
@@ -112,7 +112,7 @@ namespace Cabanoss.API.Controllers
         [HttpPatch("elements")]
         public async Task CheckElement([FromQuery] int elementId, ElementCheckDto updateElement)
         {
-            await _elementService.CheckElement(elementId, updateElement, User);
+            await _elementService.CheckElement(elementId, updateElement);
         }
         //
         /// <summary>
@@ -125,7 +125,7 @@ namespace Cabanoss.API.Controllers
         [HttpGet("members/elements")]
         public async Task<List<ResponseUserDto>> GetElementUsers([FromQuery] int elementId)
         {
-            return await _elementService.GetElementUsers(elementId, User);
+            return await _elementService.GetElementUsers(elementId);
         }
 
         /// <summary>
@@ -139,7 +139,7 @@ namespace Cabanoss.API.Controllers
         [HttpDelete("members/elements/{elementId}")]
         public async Task DeleteUserFromElement([FromRoute] int elementId, [FromQuery] int userId)
         {
-            await _elementService.DeleteUserFromElement(elementId, userId, User);
+            await _elementService.DeleteUserFromElement(elementId, userId);
         }
     }
 }

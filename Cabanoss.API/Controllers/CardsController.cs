@@ -30,7 +30,7 @@ namespace Cabanoss.API.Controllers
         [HttpPost("cards/lists")]
         public async Task AddCard([FromQuery] int listId,[FromQuery] int? cardId, [FromBody] CreateCardDto createCard)
         {
-            await _cardService.AddCard(listId, User, createCard, cardId);
+            await _cardService.AddCard(listId, createCard, cardId);
         }
 
         /// <summary>
@@ -44,7 +44,7 @@ namespace Cabanoss.API.Controllers
         [HttpPut("cards")]
         public async Task UpdateCard([FromQuery] int cardId, [FromBody] UpdateCardDto createCard)
         {
-            await _cardService.UpdateCard(cardId, User, createCard);
+            await _cardService.UpdateCard(cardId, createCard);
         }
 
         /// <summary>
@@ -58,7 +58,7 @@ namespace Cabanoss.API.Controllers
         [HttpPatch("cards")]
         public async Task SetDeadline([FromQuery] int cardId, [FromBody] DateOnly date)
         {
-            await _cardService.SetDeadline(cardId, date, User);
+            await _cardService.SetDeadline(cardId, date);
         }
 
         /// <summary>
@@ -71,7 +71,7 @@ namespace Cabanoss.API.Controllers
         [HttpGet("cards/lists")]
         public async Task<List<CardDto>> GetCards([FromQuery] int listId)
         {
-            var cards = await _cardService.GetCards(listId, User);
+            var cards = await _cardService.GetCards(listId);
             return cards;
         }
 
@@ -86,7 +86,7 @@ namespace Cabanoss.API.Controllers
         [HttpGet("cards")]
         public async Task<CardDto> GetCard([FromQuery] int cardId)
         {
-            var card = await _cardService.GetCard(cardId, User);
+            var card = await _cardService.GetCard(cardId);
             return card;
         }
 
@@ -100,7 +100,7 @@ namespace Cabanoss.API.Controllers
         [HttpDelete("cards")]
         public async Task DeleteCard([FromQuery] int cardId)
         {
-            await _cardService.DeleteCard(cardId, User);
+            await _cardService.DeleteCard(cardId);
         }
 
         /// <summary>
@@ -113,7 +113,7 @@ namespace Cabanoss.API.Controllers
         [HttpGet("members/cards")]
         public async Task<List<ResponseUserDto>> GetCardUsers([FromQuery] int cardId)
         {
-            var users = await _cardService.GetCardUsers(cardId, User);
+            var users = await _cardService.GetCardUsers(cardId);
             return users;
         }
 
@@ -127,7 +127,7 @@ namespace Cabanoss.API.Controllers
         [HttpPost("members/cards/{cardId}")]
         public async Task AddCardUsers([FromRoute] int cardId, [FromQuery] int userId)
         {
-            await _cardService.AddUserToCard(cardId, userId, User);
+            await _cardService.AddUserToCard(cardId, userId);
         }
 
         /// <summary>
@@ -140,7 +140,7 @@ namespace Cabanoss.API.Controllers
         [HttpDelete("members/cards/{cardId}")]
         public async Task RemoveCardUsers([FromRoute] int cardId, [FromQuery] int userId)
         {
-            await _cardService.DeleteUserFromCard(cardId, userId, User);
+            await _cardService.DeleteUserFromCard(cardId, userId);
         }
     }
 }

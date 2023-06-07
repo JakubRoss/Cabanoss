@@ -10,40 +10,36 @@ namespace Cabanoss.Core.Service.Impl
     {
         private readonly IWorkspaceRepository _workspaceBaserepository;
         private readonly IMapper _mapper;
-        private readonly IUserRepository _userBase;
+        private readonly IHttpUserContextService _httpUserContextService;
 
-        public WorkspaceService(IWorkspaceRepository workspaceBaserepository, IMapper mapper, IUserRepository userBaseRepository)
+        public WorkspaceService(
+            IWorkspaceRepository workspaceBaserepository,
+            IMapper mapper,
+            IHttpUserContextService httpUserContextService)
         {
             _workspaceBaserepository = workspaceBaserepository;
             _mapper = mapper;
-            _userBase = userBaseRepository;
+            _httpUserContextService = httpUserContextService;
         }
         #region Utils
-        private async Task<User> GetUserById(int id)
+        private async Task<Workspace> GetWorkspaceAsync()
         {
-            var user = await _userBase.GetFirstAsync(p => p.Id == id);
-            if (user == null)
-                throw new ResourceNotFoundException("User don't exists");
-            return user;
-        }
-        private async Task<Workspace> GetWorkspaceAsync(int id)
-        {
-            var user = await GetUserById(id);
-            var workspace = await _workspaceBaserepository.GetFirstAsync(id => id.UserId == user.Id);
+            var workspace = await _workspaceBaserepository.GetFirstAsync(id => id.UserId == (int)_httpUserContextService.UserId);
             if (workspace == null)
                 throw new ResourceNotFoundException("Uzytkownik nie posiada przestrzeni roboczej");
             return workspace;
         }
         #endregion
-        public async Task<WorkspaceDto> GetUserWorkspaceAsync(int id)
+
+        public async Task<WorkspaceDto> GetUserWorkspaceAsync()
         {
-            var workspace = await GetWorkspaceAsync(id);
+            var workspace = await GetWorkspaceAsync();
             var workspaceDto = _mapper.Map<WorkspaceDto>(workspace);
             return workspaceDto;
         }
-        public async Task<WorkspaceDto> UpdateWorkspaceAsync(int id, UpdateWorkspaceDto updateWorkspaceDto)
+        public async Task<WorkspaceDto> UpdateWorkspaceAsync(UpdateWorkspaceDto updateWorkspaceDto)
         {
-            var workspace = await GetWorkspaceAsync(id);
+            var workspace = await GetWorkspaceAsync();
             workspace.Name = updateWorkspaceDto.Name;
             workspace.UpdatedAt = DateTime.Now;
             var updatedWorkspace = await _workspaceBaserepository.UpdateAsync(workspace);
@@ -52,14 +48,13 @@ namespace Cabanoss.Core.Service.Impl
         }
 
         #region nieuzywane
-        public async Task AddWorkspaceAsync(int id)
+        public async Task AddWorkspaceAsync()
         {
-            var user = await GetUserById(id);
             var workspaceDto = new WorkspaceDto
             {
-                Name = $"{user.Login} Workspace",
+                Name = $"{_httpUserContextService.UserLogin} Workspace",
                 CreatedAt = DateTime.Now,
-                UserId = user.Id,
+                UserId = (int)_httpUserContextService.UserId,
             };
             var workspace = _mapper.Map<Workspace>(workspaceDto);
             await _workspaceBaserepository.AddAsync(workspace);

@@ -21,6 +21,7 @@ namespace Cabanoss.Core.Service.Impl
         private readonly AuthenticationSettings _authenticationSettings;
         private readonly IBoardRepository _boardRepository;
         private readonly IWorkspaceRepository _workspaceRepository;
+        private readonly IHttpUserContextService _httpUserContextService;
 
         public UserService(
             IUserRepository userBase,
@@ -29,7 +30,8 @@ namespace Cabanoss.Core.Service.Impl
             IMapper mapper,
             IWorkspaceService workspaceBussiness,
             IPasswordHasher<User>passwordHasher,
-            AuthenticationSettings authenticationSettings)
+            AuthenticationSettings authenticationSettings,
+            IHttpUserContextService httpUserContextService)
         {
             _userBase = userBase;
             _mapper = mapper;
@@ -38,11 +40,12 @@ namespace Cabanoss.Core.Service.Impl
             _authenticationSettings = authenticationSettings;
             _boardRepository = boardRepository;
             _workspaceRepository = workspaceRepository;
+            _httpUserContextService = httpUserContextService;
         }
         #region Utils
-        private async System.Threading.Tasks.Task<User> GetUser(ClaimsPrincipal claims)
+        private async System.Threading.Tasks.Task<User> GetUser()
         {
-            var id = int.Parse(claims.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier).Value);
+            var id = _httpUserContextService.UserId;
             var user = await _userBase.GetFirstAsync(p => p.Id == id);
             if (user == null)
                 throw new ResourceNotFoundException("User don't exists");
@@ -88,17 +91,17 @@ namespace Cabanoss.Core.Service.Impl
             user.CreatedAt = DateTime.Now;
             await _userBase.AddAsync(user);
 
-            await _workspaceBussiness.AddWorkspaceAsync(user.Id);
+            await _workspaceBussiness.AddWorkspaceAsync();
         }
-        public async Task<UserDto> GetUserAsync(ClaimsPrincipal claims)
+        public async Task<UserDto> GetUserAsync()
         {
-            var user = await GetUser(claims);
+            var user = await GetUser();
             var userDto = _mapper.Map<UserDto>(user);
             return userDto;
         }
-        public async Task<UserDto> UpdateUserAsync(ClaimsPrincipal claims, UpdateUserDto userDto)
+        public async Task<UserDto> UpdateUserAsync(UpdateUserDto userDto)
         {
-            var user = await GetUser(claims);
+            var user = await GetUser();
             #region updt_properties
             if (userDto.Login!=null)
                 user.Login = userDto.Login;
@@ -116,9 +119,9 @@ namespace Cabanoss.Core.Service.Impl
             var updatedDto = _mapper.Map<UserDto>(updated);
             return updatedDto;
         }
-        public async Task RemoveUserAsync(ClaimsPrincipal claims)
+        public async Task RemoveUserAsync()
         {
-            var user = await GetUser(claims);
+            var user = await GetUser();
             var boards = await _boardRepository.GetAllAsync(b=>b.BoardUsers.Any(id=>id.UserId == user.Id));
             if(boards!=null)
                 await _boardRepository.DeleteRangeAsync(boards);

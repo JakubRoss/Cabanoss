@@ -30,7 +30,7 @@ namespace Cabanoss.API.Controllers
         [HttpPost("cards")]
         public async Task AddComment([FromQuery] int cardId, [FromBody] CommentDto commentDto)
         {
-            await _commentServices.AddComment(cardId, commentDto.Text, User);
+            await _commentServices.AddComment(cardId, commentDto.Text);
         }
 
         /// <summary>
@@ -44,7 +44,7 @@ namespace Cabanoss.API.Controllers
         [HttpPut]
         public async Task UpdateComment([FromQuery] int commentId, [FromBody] CommentDto commentDto)
         {
-            await _commentServices.UpdateComment(commentId, commentDto.Text, User);
+            await _commentServices.UpdateComment(commentId, commentDto.Text);
         }
 
         /// <summary>
@@ -57,7 +57,7 @@ namespace Cabanoss.API.Controllers
         [HttpGet("cards")]
         public async Task<List<ResponseCommentDto>> GetComments([FromQuery] int cardId)
         {
-            var comments = await _commentServices.GetComments(cardId, User);
+            var comments = await _commentServices.GetComments(cardId);
             return comments;
         }
 
@@ -71,7 +71,7 @@ namespace Cabanoss.API.Controllers
         [HttpGet]
         public async Task<ResponseCommentDto> GetComment([FromQuery] int commentId)
         {
-            var comment = await _commentServices.GetComment(commentId, User);
+            var comment = await _commentServices.GetComment(commentId);
             return comment;
         }
 
@@ -85,7 +85,7 @@ namespace Cabanoss.API.Controllers
         [HttpDelete]
         public async Task DeleteCard([FromQuery] int commentId)
         {
-            await _commentServices.DeleteComment(commentId, User);
+            await _commentServices.DeleteComment(commentId);
         }
     }
 }

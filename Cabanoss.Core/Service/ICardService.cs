@@ -6,14 +6,14 @@ namespace Cabanoss.Core.Service
 {
     public interface ICardService
     {
-        Task AddCard(int listId, ClaimsPrincipal user, CreateCardDto createCard, int? cardId);
-        Task DeleteCard(int cardId, ClaimsPrincipal user);
-        Task<CardDto> GetCard(int cardId, ClaimsPrincipal claims);
-        Task<List<CardDto>> GetCards(int listId, ClaimsPrincipal user);
-        Task UpdateCard(int cardId, ClaimsPrincipal user, UpdateCardDto createCard);
-        Task SetDeadline(int cardId, DateOnly date, ClaimsPrincipal claims);
-        Task<List<ResponseUserDto>> GetCardUsers(int cardId, ClaimsPrincipal claims);
-        Task AddUserToCard(int cardId, int userId, ClaimsPrincipal claims);
-        Task DeleteUserFromCard(int cardId, int userId, ClaimsPrincipal claims);
+        Task AddCard(int listId, CreateCardDto createCard, int? cardId);
+        Task DeleteCard(int cardId);
+        Task<CardDto> GetCard(int cardId);
+        Task<List<CardDto>> GetCards(int listId);
+        Task UpdateCard(int cardId, UpdateCardDto createCard);
+        Task SetDeadline(int cardId, DateOnly date);
+        Task<List<ResponseUserDto>> GetCardUsers(int cardId);
+        Task AddUserToCard(int cardId, int userId);
+        Task DeleteUserFromCard(int cardId, int userId);
     }
 }

@@ -28,7 +28,7 @@ namespace Cabanoss.API.Controllers
         [HttpPost("boards")]
         public async Task PostBoard([FromBody] CreateBoardDto createBoardDto)
         {
-            await _boardService.CreateBoardAsync(createBoardDto , User);
+            await _boardService.CreateBoardAsync(createBoardDto);
         }
 
         /// <summary>
@@ -42,7 +42,7 @@ namespace Cabanoss.API.Controllers
         [HttpPut("boards")]
         public async Task UpdateBoardName([FromBody] UpdateBoardDto updateBoard, [FromQuery] int boardId)
         {
-            await _boardService.UpdateBoardAsync(boardId, updateBoard, User);
+            await _boardService.UpdateBoardAsync(boardId, updateBoard);
         }
 
         /// <summary>
@@ -57,7 +57,7 @@ namespace Cabanoss.API.Controllers
         [HttpGet("boards")]
         public async Task<List<ResponseBoardDto>> GetBoards()
         {
-            var boards = await _boardService.GetBoardsAsync(User);
+            var boards = await _boardService.GetBoardsAsync();
             return boards;
         }
 
@@ -71,7 +71,7 @@ namespace Cabanoss.API.Controllers
         [HttpGet("boards/{boardId}")]
         public async Task<ResponseBoardDto> GetBoard([FromRoute] int boardId)
         {
-            var board = await _boardService.GetBoardAsync(User, boardId);
+            var board = await _boardService.GetBoardAsync(boardId);
             return board;
         }
 
@@ -85,7 +85,7 @@ namespace Cabanoss.API.Controllers
         [HttpDelete("boards")]
         public async Task DeleteBoard([FromQuery] int boardId)
         {
-            await _boardService.DeleteBoardAsync(boardId, User);
+            await _boardService.DeleteBoardAsync(boardId);
         }
 
         /// <summary>
@@ -99,7 +99,7 @@ namespace Cabanoss.API.Controllers
         [HttpPost("members/boards/{boardId}")]
         public async Task AddBoardUsers([FromRoute] int boardId, [FromQuery] int userId)
         {
-            await _boardService.AddUsersAsync(boardId, userId, User);
+            await _boardService.AddUsersAsync(boardId, userId);
         }
 
         /// <summary>
@@ -114,7 +114,7 @@ namespace Cabanoss.API.Controllers
         [HttpPatch("members/boards/{boardId}")]
         public async Task SetUserRole([FromRoute] int boardId, [FromQuery] int userId, [FromBody] int userRole)
         {
-            await _boardService.SetUserRole(boardId, userId, userRole, User);
+            await _boardService.SetUserRole(boardId, userId, userRole);
         }
 
         /// <summary>
@@ -127,7 +127,7 @@ namespace Cabanoss.API.Controllers
         [HttpGet("members/boards")]
         public async Task<List<ResponseBoardUser>> GetBoardUsers([FromQuery] int boardId)
         {
-            var users = await _boardService.GetBoardUsersAsync(boardId, User);
+            var users = await _boardService.GetBoardUsersAsync(boardId);
             return users;
         }
 
@@ -143,7 +143,7 @@ namespace Cabanoss.API.Controllers
         [HttpDelete("members/boards/{boardId}")]
         public async Task RemoveBoardUsers([FromRoute] int boardId, [FromQuery] int userId)
         {
-            await _boardService.RemoveUserAsync(boardId, userId, User);
+            await _boardService.RemoveUserAsync(boardId, userId);
         }
     }
 }

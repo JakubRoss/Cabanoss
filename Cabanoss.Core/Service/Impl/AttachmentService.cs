@@ -15,17 +15,20 @@ namespace Cabanoss.Core.Service.Impl
         private IMapper _mapper;
         private IBoardRepository _boardRepository;
         private IAuthorizationService _authorizationService;
+        private IHttpUserContextService _IHttpUserContextService;
 
         public AttachmentService(
             IAttachmentRepository attachmentRepository,
             IMapper mapper,
             IBoardRepository boardRepository,
-            IAuthorizationService authorizationService)
+            IAuthorizationService authorizationService,
+            IHttpUserContextService httpUserContextService)
         {
             _attachmentRepository = attachmentRepository;
             _mapper = mapper;
             _boardRepository = boardRepository;
             _authorizationService = authorizationService;
+            _IHttpUserContextService = httpUserContextService;
         }
 
         #region Utils
@@ -43,48 +46,48 @@ namespace Cabanoss.Core.Service.Impl
                 throw new ResourceNotFoundException("Resource Not Found");
             return board;
         }
-        private async Task CheckBoardMembership(Board board, ClaimsPrincipal user)
+        private async Task CheckBoardMembership(Board board)
         {
             if (board is null)
                 throw new ResourceNotFoundException("Resource Not Found");
 
-            var authorizationResult = await _authorizationService.AuthorizeAsync(user, board, new MembershipRequirements());
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_IHttpUserContextService.User, board, new MembershipRequirements());
             if (!authorizationResult.Succeeded)
                 throw new ResourceNotFoundException("no access");
         }
-
-        private async Task<AuthorizationResult> CheckAdminRole(Board board, ClaimsPrincipal user)
+        private async Task<AuthorizationResult> CheckAdminRole(Board board)
         {
-            var authorizationResult = await _authorizationService.AuthorizeAsync(user, board, new AdminRoleRequirements());
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_IHttpUserContextService.User, board, new AdminRoleRequirements());
             return authorizationResult;
         }
         #endregion
-        public async Task<List<AttachmentResponseDto>> GetAttachments(int cardId, ClaimsPrincipal claims)
+
+        public async Task<List<AttachmentResponseDto>> GetAttachments(int cardId)
         {
             var board = await GetBoardByCardId(cardId);
-            await CheckBoardMembership(board, claims);
+            await CheckBoardMembership(board);
 
             var cardAttachments = await _attachmentRepository.GetAllAsync(p => p.CardId == cardId);
             var cardAttachmentsDto = _mapper.Map<List<AttachmentResponseDto>>(cardAttachments);
             return cardAttachmentsDto;
 
         }
-        public async Task<AttachmentResponseDto> GetAttachment(int attachmentId, ClaimsPrincipal claims)
+        public async Task<AttachmentResponseDto> GetAttachment(int attachmentId)
         {
             var board = await GetBoardByAttachmentId(attachmentId);
-            await CheckBoardMembership(board, claims);
+            await CheckBoardMembership(board);
 
             var attachment = _attachmentRepository.GetFirstAsync(p => p.Id == attachmentId);
             var attachmentDto = _mapper.Map<AttachmentResponseDto>(attachment);
 
             return attachmentDto;
         }
-        public async Task AddAttachment(int cardId, AttachmentDto attachment, ClaimsPrincipal claims)
+        public async Task AddAttachment(int cardId, AttachmentDto attachment)
         {
             var board = await GetBoardByCardId(cardId);
-            await CheckBoardMembership(board, claims);
+            await CheckBoardMembership(board);
 
-            var userId = int.Parse(claims.FindFirst(c => c.Type == ClaimTypes.NameIdentifier).Value);
+            var userId = (int)_IHttpUserContextService.UserId;
 
             var newAttachment = new Attachment()
             {
@@ -97,16 +100,16 @@ namespace Cabanoss.Core.Service.Impl
 
             await _attachmentRepository.AddAsync(newAttachment);
         }
-        public async Task UpdateAttachment(int attachmentId, AttachmentDto attachment, ClaimsPrincipal claims)
+        public async Task UpdateAttachment(int attachmentId, AttachmentDto attachment)
         {
             var board = await GetBoardByAttachmentId(attachmentId);
 
-            await CheckBoardMembership(board, claims);
-            var adminAuthorization = await CheckAdminRole(board, claims);
+            await CheckBoardMembership(board);
+            var adminAuthorization = await CheckAdminRole(board);
 
             var attachmentUpdate = await _attachmentRepository.GetFirstAsync(p => p.Id == attachmentId);
 
-            var userId = int.Parse(claims.FindFirst(c => c.Type == ClaimTypes.NameIdentifier).Value);
+            var userId = _IHttpUserContextService.UserId;
             if (userId == attachmentUpdate.UserId || adminAuthorization.Succeeded)
             {
                 if (attachmentUpdate.Path != null)
@@ -118,16 +121,16 @@ namespace Cabanoss.Core.Service.Impl
             else
                 throw new ResourceNotFoundException("No Access");
         }
-        public async Task DeleteAttachment(int attachmentId, ClaimsPrincipal claims)
+        public async Task DeleteAttachment(int attachmentId)
         {
             var board = await GetBoardByAttachmentId(attachmentId);
 
-            await CheckBoardMembership(board, claims);
-            var adminAuthorization = await CheckAdminRole(board, claims);
+            await CheckBoardMembership(board);
+            var adminAuthorization = await CheckAdminRole(board);
 
             var attachment = await _attachmentRepository.GetFirstAsync(p => p.Id == attachmentId);
 
-            var userId = int.Parse(claims.FindFirst(c => c.Type == ClaimTypes.NameIdentifier).Value);
+            var userId = _IHttpUserContextService.UserId;
             if (userId == attachment.UserId || adminAuthorization.Succeeded)
                 await _attachmentRepository.DeleteAsync(attachment);
             else

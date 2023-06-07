@@ -30,7 +30,7 @@ namespace Cabanoss.API.Controllers
         [HttpPost("cards")]
         public async Task AddAttachment([FromQuery] int cardId, [FromBody] AttachmentDto attachmentDto)
         {
-            await _attachmentService.AddAttachment(cardId, attachmentDto, User);
+            await _attachmentService.AddAttachment(cardId, attachmentDto);
         }
 
         /// <summary>
@@ -44,7 +44,7 @@ namespace Cabanoss.API.Controllers
         [HttpPut]
         public async Task UpdateAttachment([FromQuery] int attachmentId, [FromBody] AttachmentDto attachmentDto)
         {
-            await _attachmentService.UpdateAttachment(attachmentId, attachmentDto, User);
+            await _attachmentService.UpdateAttachment(attachmentId, attachmentDto);
         }
 
         /// <summary>
@@ -57,7 +57,7 @@ namespace Cabanoss.API.Controllers
         [HttpGet("cards")]
         public async Task<List<AttachmentResponseDto>> GetAttachments([FromQuery] int cardId)
         {
-            var attachments = await _attachmentService.GetAttachments(cardId, User);
+            var attachments = await _attachmentService.GetAttachments(cardId);
             return attachments;
         }
 
@@ -71,7 +71,7 @@ namespace Cabanoss.API.Controllers
         [HttpGet]
         public async Task<AttachmentResponseDto> GetAttachment([FromQuery] int attachmentId)
         {
-            var attachment = await _attachmentService.GetAttachment(attachmentId, User);
+            var attachment = await _attachmentService.GetAttachment(attachmentId);
             return attachment;
         }
 
@@ -85,7 +85,7 @@ namespace Cabanoss.API.Controllers
         [HttpDelete]
         public async Task DeleteAttachment([FromQuery] int attachmentId)
         {
-            await _attachmentService.DeleteAttachment(attachmentId, User);
+            await _attachmentService.DeleteAttachment(attachmentId);
         }
     }
 }

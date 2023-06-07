@@ -30,7 +30,7 @@ namespace Cabanoss.API.Controllers
         [HttpPost("cards")]
         public async Task AddNewTask([FromQuery]int cardId,[FromBody]TaskDto createTaskDto)
         {
-            await _tasksService.AddTask(cardId, createTaskDto, User);
+            await _tasksService.AddTask(cardId, createTaskDto);
         }
 
         /// <summary>
@@ -43,7 +43,7 @@ namespace Cabanoss.API.Controllers
         [HttpPut]
         public async Task UpdateTask([FromQuery] int taskId, [FromBody] TaskDto updateTask)
         {
-            await _tasksService.UpdateTask(taskId, updateTask, User);
+            await _tasksService.UpdateTask(taskId, updateTask);
         }
 
         /// <summary>
@@ -56,7 +56,7 @@ namespace Cabanoss.API.Controllers
         [HttpGet("cards")]
         public async Task<List<ResponseTaskDto>> GetCardTasks([FromQuery] int cardId)
         {
-            var tasks = await _tasksService.GetCardTasks(cardId,User);
+            var tasks = await _tasksService.GetCardTasks(cardId);
             return tasks;
         }
 
@@ -70,7 +70,7 @@ namespace Cabanoss.API.Controllers
         [HttpGet]
         public async Task<ResponseTaskDto> GetTask([FromQuery] int taskId)
         {
-           var task = await _tasksService.GetTask(taskId,User);
+           var task = await _tasksService.GetTask(taskId);
            return task;
         }
 
@@ -84,7 +84,7 @@ namespace Cabanoss.API.Controllers
         [HttpDelete]
         public async Task DeleteTask([FromQuery] int taskId)
         {
-            await _tasksService.DeleteTask(taskId, User);
+            await _tasksService.DeleteTask(taskId);
         }
 
     }

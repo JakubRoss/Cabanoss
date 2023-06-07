@@ -29,7 +29,7 @@ namespace Cabanoss.API.Controllers
         [HttpPost]
         public async Task CreateList([FromQuery] int boardId, [FromBody] CreateListDto createList)
         {
-            await _listService.CreateListAsync(boardId, createList.Name, User);
+            await _listService.CreateListAsync(boardId, createList.Name);
         }
 
         /// <summary>
@@ -42,7 +42,7 @@ namespace Cabanoss.API.Controllers
         [HttpGet("boards")]
         public async Task<List<ListDto>> GetLists([FromQuery] int boardId)
         {
-            var lists = await _listService.GetAllAsync(boardId, User);
+            var lists = await _listService.GetAllAsync(boardId);
             return lists;
         }
 
@@ -56,7 +56,7 @@ namespace Cabanoss.API.Controllers
         [HttpGet]
         public async Task<ListDto> GetList([FromQuery]int listId)
         {
-            return await _listService.GetListAsync(listId, User);
+            return await _listService.GetListAsync(listId);
         }
 
         /// <summary>
@@ -69,7 +69,7 @@ namespace Cabanoss.API.Controllers
         [HttpPut]
         public async Task UpdateList([FromQuery] int listId , [FromBody] CreateListDto createList)
         {
-            await _listService.UpdateList(listId, createList.Name ,User);
+            await _listService.UpdateList(listId, createList.Name);
         }
 
         /// <summary>
@@ -82,7 +82,7 @@ namespace Cabanoss.API.Controllers
         [HttpPatch]
         public async Task SetDeadline([FromQuery] int listId, [FromBody] DateOnly date)
         {
-            await _listService.SetDeadline(listId , date , User);
+            await _listService.SetDeadline(listId , date );
         }
 
         /// <summary>
@@ -94,7 +94,7 @@ namespace Cabanoss.API.Controllers
         [HttpDelete]
         public async Task DeleteList([FromQuery] int listId)
         {
-            await _listService.DeleteList(listId , User);
+            await _listService.DeleteList(listId );
         }
     }
 }

@@ -6,7 +6,6 @@ using Cabanoss.Core.Model.Element;
 using Cabanoss.Core.Model.User;
 using Cabanoss.Core.Repositories;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
 
 namespace Cabanoss.Core.Service.Impl
 {
@@ -17,24 +16,24 @@ namespace Cabanoss.Core.Service.Impl
         private IElementRepository _element;
         private IMapper _mapper;
         private IElementUsersRepository _elementUsersRepository;
-        private IBoardUsersRepository _boardUsersRepository;
         private IUserRepository _userRepository;
+        private IHttpUserContextService _httpUserContextService;
 
         public ElementService(IBoardRepository boardRepository,
             IAuthorizationService authorizationService,
             IElementRepository element,
             IMapper mapper,
             IElementUsersRepository elementUsersRepository,
-            IBoardUsersRepository boardUsersRepository,
-            IUserRepository userRepository)
+            IUserRepository userRepository,
+            IHttpUserContextService httpUserContextService)
         {
             _boardRepository = boardRepository;
             _authorizationService = authorizationService;
             _element = element;
             _mapper = mapper;
             _elementUsersRepository = elementUsersRepository;
-            _boardUsersRepository = boardUsersRepository;
             _userRepository = userRepository;
+            _httpUserContextService = httpUserContextService;
 
         }
         #region Utils
@@ -54,12 +53,12 @@ namespace Cabanoss.Core.Service.Impl
                 throw new ResourceNotFoundException("Resource Not Found");
             return board;
         }
-        private async Task CheckBoardMembership(Board board, ClaimsPrincipal user)
+        private async Task CheckBoardMembership(Board board)
         {
             if (board is null)
                 throw new ResourceNotFoundException("Resource Not Found");
 
-            var authorizationResult = await _authorizationService.AuthorizeAsync(user, board, new MembershipRequirements());
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new MembershipRequirements());
             if (!authorizationResult.Succeeded)
                 throw new ResourceNotFoundException("no access");
         }
@@ -72,40 +71,40 @@ namespace Cabanoss.Core.Service.Impl
             if (!isUser)
                 throw new ResourceNotFoundException("no access");
         }
-        private async Task<AuthorizationResult> ChceckAdminRole(Board board, ClaimsPrincipal user)
+        private async Task<AuthorizationResult> ChceckAdminRole(Board board)
         {
-            var authorizationResult = await _authorizationService.AuthorizeAsync(user, board, new AdminRoleRequirements());
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new AdminRoleRequirements());
             if (!authorizationResult.Succeeded)
                 throw new ResourceNotFoundException("No Access");
             return authorizationResult;
         }
         #endregion
 
-        public async Task<List<ResponseElementDto>> GetElements(int taskId, ClaimsPrincipal claims)
+        public async Task<List<ResponseElementDto>> GetElements(int taskId)
         {
             var board = await GetBoardByTaskId(taskId);
 
-            await CheckBoardMembership(board, claims);
+            await CheckBoardMembership(board);
 
             var elements = await _element.GetAllAsync(p => p.TaskId == taskId);
             var elementsDto = _mapper.Map<List<ResponseElementDto>>(elements);
             return elementsDto;
         }
-        public async Task<ResponseElementDto> GetElement(int elementId, ClaimsPrincipal claims)
+        public async Task<ResponseElementDto> GetElement(int elementId)
         {
             var board = await GetBoardByElementId(elementId);
 
-            await CheckBoardMembership(board, claims);
+            await CheckBoardMembership(board);
 
             var element = await _element.GetFirstAsync(p => p.Id == elementId, i=>i.ElementUsers);
             var elementDto = _mapper.Map<ResponseElementDto>(element);
             return elementDto;
         }
-        public async Task AddElement(int taskId, ElementDto elementDto, ClaimsPrincipal claims)
+        public async Task AddElement(int taskId, ElementDto elementDto)
         {
             var board = await GetBoardByTaskId(taskId);
 
-            await ChceckAdminRole(board, claims);
+            await ChceckAdminRole(board);
 
             var newElement = new Element()
             {
@@ -117,11 +116,11 @@ namespace Cabanoss.Core.Service.Impl
 
             await _element.AddAsync(newElement);
         }
-        public async Task UpdateElement(int elementId, UpdateElementDto updateElementDto, ClaimsPrincipal claims)
+        public async Task UpdateElement(int elementId, UpdateElementDto updateElementDto)
         {
             var board = await GetBoardByElementId(elementId);
 
-            await CheckBoardMembership(board, claims);
+            await CheckBoardMembership(board);
 
             var element = await _element.GetFirstAsync(p => p.Id == elementId);
             if (element == null)
@@ -135,10 +134,10 @@ namespace Cabanoss.Core.Service.Impl
 
             await _element.UpdateAsync(element);
         }
-        public async Task DeleteElement(int elementId, ClaimsPrincipal claims)
+        public async Task DeleteElement(int elementId)
         {
             var board = await GetBoardByElementId(elementId);
-            await ChceckAdminRole(board, claims);
+            await ChceckAdminRole(board);
 
             var element = await _element.GetFirstAsync(p => p.Id == elementId);
             if (element == null)
@@ -146,10 +145,10 @@ namespace Cabanoss.Core.Service.Impl
 
             await _element.DeleteAsync(element);
         }
-        public async Task CheckElement(int elementId, ElementCheckDto updateElementDto, ClaimsPrincipal claims)
+        public async Task CheckElement(int elementId, ElementCheckDto updateElementDto)
         {
             var board = await GetBoardByElementId(elementId);
-            await CheckBoardMembership(board, claims);
+            await CheckBoardMembership(board);
 
             var element = await _element.GetFirstAsync(p => p.Id == elementId);
             if (element == null)
@@ -162,10 +161,10 @@ namespace Cabanoss.Core.Service.Impl
             await _element.UpdateAsync(element);
         }
         //For members
-        public async Task<List<ResponseUserDto>> GetElementUsers(int elementId,ClaimsPrincipal claims)
+        public async Task<List<ResponseUserDto>> GetElementUsers(int elementId)
         {
             var board = await GetBoardByElementId(elementId);
-            await CheckBoardMembership(board,claims);
+            await CheckBoardMembership(board);
 
             var element = await _element.GetFirstAsync(eid => eid.Id == elementId, i => i.ElementUsers);
             var elementUsers = element.ElementUsers.ToList();
@@ -180,10 +179,10 @@ namespace Cabanoss.Core.Service.Impl
             return usersDto;
 
         } 
-        public async Task AddUserToElement(int elementId, int userId, ClaimsPrincipal claims)
+        public async Task AddUserToElement(int elementId, int userId)
         {
             var board = await GetBoardByElementId(elementId);
-            await ChceckAdminRole(board, claims);
+            await ChceckAdminRole(board);
             await CheckBoardMembership(board, userId);
 
             var element = await _element.GetFirstAsync(_ => _.Id == elementId, i=>i.ElementUsers);
@@ -200,10 +199,10 @@ namespace Cabanoss.Core.Service.Impl
 
             await _elementUsersRepository.AddAsync(userElement);
         }
-        public async Task DeleteUserFromElement(int elementId, int userId, ClaimsPrincipal claims)
+        public async Task DeleteUserFromElement(int elementId, int userId)
         {
             var board = await GetBoardByElementId(elementId);
-            await ChceckAdminRole(board, claims);
+            await ChceckAdminRole(board);
             await CheckBoardMembership(board, userId);
 
             var boardUser = board.BoardUsers.FirstOrDefault(p=>p.BoardId == board.Id && p.UserId==userId);

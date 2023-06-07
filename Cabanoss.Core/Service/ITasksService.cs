@@ -1,14 +1,13 @@
 ﻿using Cabanoss.Core.Model.Task;
-using System.Security.Claims;
 
 namespace Cabanoss.Core.Service
 {
     public interface ITasksService
     {
-        Task AddTask(int cardId, TaskDto createTaskDto, ClaimsPrincipal claims);
-        Task DeleteTask(int taskId, ClaimsPrincipal claims);
-        Task<List<ResponseTaskDto>> GetCardTasks(int cardId, ClaimsPrincipal claims);
-        Task<ResponseTaskDto> GetTask(int taskId, ClaimsPrincipal claims);
-        Task UpdateTask(int taskId, TaskDto taskDto, ClaimsPrincipal claims);
+        Task AddTask(int cardId, TaskDto createTaskDto);
+        Task DeleteTask(int taskId);
+        Task<List<ResponseTaskDto>> GetCardTasks(int cardId);
+        Task<ResponseTaskDto> GetTask(int taskId);
+        Task UpdateTask(int taskId, TaskDto taskDto);
     }
 }

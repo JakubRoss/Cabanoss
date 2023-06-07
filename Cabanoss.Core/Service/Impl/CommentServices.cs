@@ -1,34 +1,32 @@
-﻿using AutoMapper;
-using Cabanoss.Core.Authorization;
+﻿using Cabanoss.Core.Authorization;
 using Cabanoss.Core.Data.Entities;
 using Cabanoss.Core.Exceptions;
 using Cabanoss.Core.Model.Comment;
 using Cabanoss.Core.Repositories;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
 
 namespace Cabanoss.Core.Service.Impl
 {
     public class CommentServices : ICommentServices
     {
         private ICommentRepository _commentRepository;
-        private IMapper _mapper;
         private IBoardRepository _boardRepository;
         private IAuthorizationService _authorizationService;
         private IUserRepository _userRepository;
+        private IHttpUserContextService _httpUserContextService;
 
         public CommentServices(
             ICommentRepository commentRepository,
-            IMapper mapper,
             IBoardRepository boardRepository,
             IAuthorizationService authorizationService,
-            IUserRepository userRepository)
+            IUserRepository userRepository,
+            IHttpUserContextService httpUserContextService)
         {
             _commentRepository = commentRepository;
-            _mapper = mapper;
             _boardRepository = boardRepository;
             _authorizationService = authorizationService;
             _userRepository = userRepository;
+            _httpUserContextService = httpUserContextService;
         }
 
         #region Utils
@@ -46,26 +44,26 @@ namespace Cabanoss.Core.Service.Impl
                 throw new ResourceNotFoundException("Resource Not Found");
             return board;
         }
-        private async Task CheckBoardMembership(Board board, ClaimsPrincipal user)
+        private async Task CheckBoardMembership(Board board)
         {
             if (board is null)
                 throw new ResourceNotFoundException("Resource Not Found");
 
-            var authorizationResult = await _authorizationService.AuthorizeAsync(user, board, new MembershipRequirements());
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new MembershipRequirements());
             if (!authorizationResult.Succeeded)
                 throw new ResourceNotFoundException("no access");
         }
-
-        private async Task<AuthorizationResult> CheckAdminRole(Board board, ClaimsPrincipal user)
+        private async Task<AuthorizationResult> CheckAdminRole(Board board)
         {
-            var authorizationResult = await _authorizationService.AuthorizeAsync(user, board, new AdminRoleRequirements());
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new AdminRoleRequirements());
             return authorizationResult;
         }
         #endregion
-        public async Task<List<ResponseCommentDto>> GetComments(int cardId, ClaimsPrincipal claims)
+
+        public async Task<List<ResponseCommentDto>> GetComments(int cardId)
         {
             var board = await GetBoardByCardId(cardId);
-            await CheckBoardMembership(board, claims);
+            await CheckBoardMembership(board);
 
             var cardComments = await _commentRepository.GetAllAsync(p => p.CardId == cardId);
             var cardDtoComments = new List<ResponseCommentDto>();
@@ -84,28 +82,30 @@ namespace Cabanoss.Core.Service.Impl
             return cardDtoComments;
 
         }
-        public async Task<ResponseCommentDto> GetComment(int commentId, ClaimsPrincipal claims)
+        public async Task<ResponseCommentDto> GetComment(int commentId)
         {
             var board = await GetBoardByCommentId(commentId);
-            await CheckBoardMembership(board, claims);
+            await CheckBoardMembership(board);
 
             var comment = await _commentRepository.GetFirstAsync(p => p.Id == commentId);
+            if (comment is null)
+                throw new ResourceNotFoundException("comment does not exist");
 
             return new ResponseCommentDto 
             { 
                 Id = comment.Id,
-                UserId = int.Parse(claims.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier).Value),
-                Author = claims.Claims.FirstOrDefault(c=>c.Type == ClaimTypes.Name).Value,
+                UserId = comment.UserId,
+                Author = _userRepository.GetFirstAsync(i=>i.Id==comment.UserId).Result.Login,
                 Text = comment.Text,
                 CreatedAt = comment.CreatedAt
             };
         }
-        public async Task AddComment(int cardId, string text, ClaimsPrincipal claims)
+        public async Task AddComment(int cardId, string text)
         {
             var board = await GetBoardByCardId(cardId);
-            await CheckBoardMembership(board, claims);
+            await CheckBoardMembership(board);
 
-            var userId = int.Parse(claims.FindFirst(c => c.Type == ClaimTypes.NameIdentifier).Value);
+            var userId = (int)_httpUserContextService.UserId;
 
             var comment = new Comment()
             {
@@ -117,16 +117,16 @@ namespace Cabanoss.Core.Service.Impl
 
             await _commentRepository.AddAsync(comment);
         }
-        public async Task UpdateComment(int commentId, string text, ClaimsPrincipal claims)
+        public async Task UpdateComment(int commentId, string text)
         {
             var board = await GetBoardByCommentId(commentId);
 
-            await CheckBoardMembership(board, claims);
-            var adminAuthorization = await CheckAdminRole(board, claims);
+            await CheckBoardMembership(board);
+            var adminAuthorization = await CheckAdminRole(board);
 
             var comment = await _commentRepository.GetFirstAsync(p => p.Id == commentId);
 
-            var userId = int.Parse(claims.FindFirst(c => c.Type == ClaimTypes.NameIdentifier).Value);
+            var userId = (int)_httpUserContextService.UserId;
             if (userId == comment.UserId || adminAuthorization.Succeeded)
             {
                 comment.Text = text;
@@ -135,16 +135,16 @@ namespace Cabanoss.Core.Service.Impl
             else
                 throw new ResourceNotFoundException("No Access");
         }
-        public async Task DeleteComment(int commentId, ClaimsPrincipal claims)
+        public async Task DeleteComment(int commentId)
         {
             var board = await GetBoardByCommentId(commentId);
 
-            await CheckBoardMembership(board, claims);
-            var adminAuthorization = await CheckAdminRole(board, claims);
+            await CheckBoardMembership(board);
+            var adminAuthorization = await CheckAdminRole(board);
 
             var comment = await _commentRepository.GetFirstAsync(p => p.Id == commentId);
 
-            var userId = int.Parse(claims.FindFirst(c => c.Type == ClaimTypes.NameIdentifier).Value);
+            var userId = (int)_httpUserContextService.UserId;
             if (userId == comment.UserId || adminAuthorization.Succeeded)
                 await _commentRepository.DeleteAsync(comment);
             else
