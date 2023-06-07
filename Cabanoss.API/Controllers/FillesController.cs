@@ -27,7 +27,7 @@ namespace Cabanoss.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetFile()
         {
-            var fileContents = await _fileService.GetFile(User);
+            var fileContents = await _fileService.GetFile();
 
             return File(fileContents.fileContents, fileContents.contentType, fileContents.fileName);
         }
@@ -42,7 +42,7 @@ namespace Cabanoss.API.Controllers
         [HttpPost]
         public async Task UploadFile(IFormFile file)
         {
-            await _fileService.UploadFile(User, file);
+            await _fileService.UploadFile(file);
         }
     }
 }

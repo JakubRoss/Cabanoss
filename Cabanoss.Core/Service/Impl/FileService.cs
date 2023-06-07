@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.StaticFiles;
 using System.Security.Claims;
 
+
 namespace Cabanoss.Core.Service.Impl
 {
     public class FileContResult
@@ -24,13 +25,16 @@ namespace Cabanoss.Core.Service.Impl
     {
         private IUserRepository _userRepository;
         private readonly IHttpContextAccessor _IHttpContextAccessor;
+        private readonly IHttpUserContextService _httpUserContextService;
 
         public FileService(
             IUserRepository userRepository,
-            IHttpContextAccessor IHttpContextAccessor)
+            IHttpContextAccessor IHttpContextAccessor,
+            IHttpUserContextService httpUserContextService)
         {
             _userRepository = userRepository;
             _IHttpContextAccessor = IHttpContextAccessor;
+            _httpUserContextService = httpUserContextService;
         }
         private bool GetFileExtension(IFormFile file, out string ext)
         {
@@ -44,9 +48,9 @@ namespace Cabanoss.Core.Service.Impl
             ext = extension;
             return true;
         }
-        public async Task<FileContResult> GetFile(ClaimsPrincipal claimsPrincipal)
+        public async Task<FileContResult> GetFile()
         {
-            var id = claimsPrincipal.FindFirst(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var id = _httpUserContextService.UserId;
 
             var rootPath = Directory.GetParent(Directory.GetCurrentDirectory());
             var folderPath = $"{rootPath}\\Cabanoss.Core\\Files\\{id}";
@@ -72,10 +76,10 @@ namespace Cabanoss.Core.Service.Impl
             return new FileContResult(fileContents, contentType, fileName);
         }
 
-        public async Task UploadFile(ClaimsPrincipal claims, IFormFile file)
+        public async Task UploadFile(IFormFile file)
         {
-            var id = claims.FindFirst(c => c.Type == ClaimTypes.NameIdentifier).Value;
-            var login = claims.FindFirst(c => c.Type == ClaimTypes.Name).Value;
+            var id = (int)_httpUserContextService.UserId;
+            var login = _httpUserContextService.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name).Value;
 
             var ext = string.Empty;
             var allowedExtension = GetFileExtension(file, out ext);
@@ -112,7 +116,7 @@ namespace Cabanoss.Core.Service.Impl
 
             // Tworzenie ścieżki URL do pliku
             var fileUrl = $"{baseUrl}/Cabanoss.Core/Files/{id}/{name}";
-            var user = await _userRepository.GetFirstAsync(x => x.Id == int.Parse(id));
+            var user = await _userRepository.GetFirstAsync(x => x.Id == id);
             user.AvatarPath = fileUrl;
             await _userRepository.UpdateAsync(user);
         }
