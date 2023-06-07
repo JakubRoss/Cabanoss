@@ -159,7 +159,8 @@ builder.Services.AddScoped<ICommentRepository, CommentRepository>();
 builder.Services.AddScoped<IAttachmentRepository, AttachmentRepository>();
 builder.Services.AddScoped<IElementRepository, ElementRepository>();
 builder.Services.AddScoped<IElementUsersRepository, ElementUsersRepository>();
-builder.Services.AddScoped<ICardUserRepository ,  CardUserRepository>();
+builder.Services.AddScoped<ICardUserRepository, CardUserRepository>();
+builder.Services.AddScoped<IHttpUserContextService, HttpUserContextService>();
 //Bussiness Logic Services
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IWorkspaceService,  WorkspaceService>();
