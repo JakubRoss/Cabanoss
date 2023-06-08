@@ -63,9 +63,7 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 //Authorization services
-builder.Services.AddScoped<IAuthorizationHandler,MembershipRequirementsHandler>();
-builder.Services.AddScoped<IAuthorizationHandler, AdminRoleRequirementsHandler>();
-builder.Services.AddScoped<IAuthorizationHandler, CreatorRoleRequirementsHandler>();
+builder.Services.AddScoped<IAuthorizationHandler,ResourceOperationRequirementsHandler>();
 
 builder.Services.AddScoped<CabanossSeeder>();
 builder.Services.AddHttpContextAccessor();

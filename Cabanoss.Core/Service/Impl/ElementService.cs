@@ -53,15 +53,6 @@ namespace Cabanoss.Core.Service.Impl
                 throw new ResourceNotFoundException("Resource Not Found");
             return board;
         }
-        private async Task CheckBoardMembership(Board board)
-        {
-            if (board is null)
-                throw new ResourceNotFoundException("Resource Not Found");
-
-            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new MembershipRequirements());
-            if (!authorizationResult.Succeeded)
-                throw new ResourceNotFoundException("no access");
-        }
         private async Task CheckBoardMembership(Board board, int userId)
         {
             if (board is null)
@@ -71,20 +62,15 @@ namespace Cabanoss.Core.Service.Impl
             if (!isUser)
                 throw new ResourceNotFoundException("no access");
         }
-        private async Task<AuthorizationResult> ChceckAdminRole(Board board)
-        {
-            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new AdminRoleRequirements());
-            if (!authorizationResult.Succeeded)
-                throw new ResourceNotFoundException("No Access");
-            return authorizationResult;
-        }
         #endregion
 
         public async Task<List<ResponseElementDto>> GetElements(int taskId)
         {
             var board = await GetBoardByTaskId(taskId);
 
-            await CheckBoardMembership(board);
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Read));
+            if (!authorizationResult.Succeeded)
+                throw new UnauthorizedException("Unauthorized");
 
             var elements = await _element.GetAllAsync(p => p.TaskId == taskId);
             var elementsDto = _mapper.Map<List<ResponseElementDto>>(elements);
@@ -94,7 +80,9 @@ namespace Cabanoss.Core.Service.Impl
         {
             var board = await GetBoardByElementId(elementId);
 
-            await CheckBoardMembership(board);
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Read));
+            if (!authorizationResult.Succeeded)
+                throw new UnauthorizedException("Unauthorized");
 
             var element = await _element.GetFirstAsync(p => p.Id == elementId, i=>i.ElementUsers);
             var elementDto = _mapper.Map<ResponseElementDto>(element);
@@ -104,7 +92,9 @@ namespace Cabanoss.Core.Service.Impl
         {
             var board = await GetBoardByTaskId(taskId);
 
-            await ChceckAdminRole(board);
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Create));
+            if (!authorizationResult.Succeeded)
+                throw new UnauthorizedException("Unauthorized");
 
             var newElement = new Element()
             {
@@ -120,7 +110,9 @@ namespace Cabanoss.Core.Service.Impl
         {
             var board = await GetBoardByElementId(elementId);
 
-            await CheckBoardMembership(board);
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Update));
+            if (!authorizationResult.Succeeded)
+                throw new UnauthorizedException("Unauthorized");
 
             var element = await _element.GetFirstAsync(p => p.Id == elementId);
             if (element == null)
@@ -137,7 +129,9 @@ namespace Cabanoss.Core.Service.Impl
         public async Task DeleteElement(int elementId)
         {
             var board = await GetBoardByElementId(elementId);
-            await ChceckAdminRole(board);
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Delete));
+            if (!authorizationResult.Succeeded)
+                throw new UnauthorizedException("Unauthorized");
 
             var element = await _element.GetFirstAsync(p => p.Id == elementId);
             if (element == null)
@@ -148,7 +142,9 @@ namespace Cabanoss.Core.Service.Impl
         public async Task CheckElement(int elementId, ElementCheckDto updateElementDto)
         {
             var board = await GetBoardByElementId(elementId);
-            await CheckBoardMembership(board);
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Read));
+            if (!authorizationResult.Succeeded)
+                throw new UnauthorizedException("Unauthorized");
 
             var element = await _element.GetFirstAsync(p => p.Id == elementId);
             if (element == null)
@@ -164,7 +160,9 @@ namespace Cabanoss.Core.Service.Impl
         public async Task<List<ResponseUserDto>> GetElementUsers(int elementId)
         {
             var board = await GetBoardByElementId(elementId);
-            await CheckBoardMembership(board);
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Read));
+            if (!authorizationResult.Succeeded)
+                throw new UnauthorizedException("Unauthorized");
 
             var element = await _element.GetFirstAsync(eid => eid.Id == elementId, i => i.ElementUsers);
             var elementUsers = element.ElementUsers.ToList();
@@ -182,7 +180,9 @@ namespace Cabanoss.Core.Service.Impl
         public async Task AddUserToElement(int elementId, int userId)
         {
             var board = await GetBoardByElementId(elementId);
-            await ChceckAdminRole(board);
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Update));
+            if (!authorizationResult.Succeeded)
+                throw new UnauthorizedException("Unauthorized");
             await CheckBoardMembership(board, userId);
 
             var element = await _element.GetFirstAsync(_ => _.Id == elementId, i=>i.ElementUsers);
@@ -202,7 +202,9 @@ namespace Cabanoss.Core.Service.Impl
         public async Task DeleteUserFromElement(int elementId, int userId)
         {
             var board = await GetBoardByElementId(elementId);
-            await ChceckAdminRole(board);
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Update));
+            if (!authorizationResult.Succeeded)
+                throw new UnauthorizedException("Unauthorized");
             await CheckBoardMembership(board, userId);
 
             var boardUser = board.BoardUsers.FirstOrDefault(p=>p.BoardId == board.Id && p.UserId==userId);

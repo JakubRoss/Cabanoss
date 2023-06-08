@@ -37,44 +37,30 @@ namespace Cabanoss.Core.Service.Impl
             _httpUserContextService = httpUserContextService;
         }
         #region utils
-        /// <summary>
-        /// Sprawdza przynaleznosc uzytkownika(pytajacego) do danej tablicy
-        /// </summary>
-        /// <param name="boardId">Id tablicy.</param>
-        /// <param name="user">Claims principal.</param>
-        /// <returns>Authorization result</returns>
-        private async System.Threading.Tasks.Task<AuthorizationResult> CheckBoardMembership(int boardId)
-        {
-            var board = await _boardRepository.GetFirstAsync(i => i.Id == boardId, i => i.BoardUsers);
-            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new MembershipRequirements());
-            return authorizationResult;
-        }
         private async System.Threading.Tasks.Task<BoardUser> CheckBoardMembership(int boardId, int userId)
         {
             var boardUser = await _boardUsersBaseRepository.GetFirstAsync(i => i.BoardId == boardId && i.UserId == userId);
+            if (boardUser == null)
+                throw new ResourceNotFoundException("User don't exists");
             return boardUser;
             
         }
-        private async Task<AuthorizationResult> CheckCreatorRole(int boardId)
+        private async Task<Board> GetBoard(int boardId)
         {
-            var board = await _boardRepository.GetFirstAsync(i => i.Id == boardId, i => i.BoardUsers);
-            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new CreatorRoleRequirements());
-            return authorizationResult;
-        }
-        private async Task<AuthorizationResult> CheckAdminRole(int boardId)
-        {
-            var board = await _boardRepository.GetFirstAsync(i => i.Id == boardId, i => i.BoardUsers);
-            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new AdminRoleRequirements());
-            return authorizationResult;
+            var board = await _boardRepository.GetFirstAsync(x => x.Id == boardId, i=>i.BoardUsers);
+            if (board == null)
+                throw new ResourceNotFoundException("Resource not found");
+            return board;
         }
         #endregion
 
         public async Task<ResponseBoardDto> GetBoardAsync(int boardId)
         {
-            var authorizationResult = await CheckBoardMembership(boardId);
+            var board = await GetBoard(boardId);
+
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Read));
             if (!authorizationResult.Succeeded)
                 throw new UnauthorizedException("Unauthorized");
-            var board = await _boardRepository.GetFirstAsync(x => x.Id == boardId);
 
             return _mapper.Map<ResponseBoardDto>(board); 
         }
@@ -95,12 +81,11 @@ namespace Cabanoss.Core.Service.Impl
 
         public async Task DeleteBoardAsync(int boardId)
         {
-            var authorizationRoleResult = await CheckCreatorRole(boardId);
-            if (!authorizationRoleResult.Succeeded)
-                throw new ResourceNotFoundException("No Access");
-            var board = await _boardRepository.GetFirstAsync(p => p.Id == boardId);
-            if (board is null)
-                throw new ResourceNotFoundException("Resource Not Found");
+            var board = await GetBoard(boardId);
+
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Delete));
+            if (!authorizationResult.Succeeded)
+                throw new UnauthorizedException("Unauthorized");
             await _boardRepository.DeleteAsync(board);
         }
 
@@ -119,9 +104,11 @@ namespace Cabanoss.Core.Service.Impl
 
         public async Task<List<ResponseBoardUser>> GetBoardUsersAsync(int boardId)
         {
-            var authorizationMembershipResult = await CheckBoardMembership(boardId);
-            if (!authorizationMembershipResult.Succeeded)
-                throw new ResourceNotFoundException("no access");
+            var board = await GetBoard(boardId);
+
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Read));
+            if (!authorizationResult.Succeeded)
+                throw new UnauthorizedException("Unauthorized");
 
             var users = await _userBase.GetAllAsync(u => u.BoardUsers.Any(bu => bu.BoardId == boardId));
 
@@ -149,9 +136,11 @@ namespace Cabanoss.Core.Service.Impl
             if (isUserExist == null)
                 throw new ResourceNotFoundException("User don't exists");
 
-            var authorizationRoleResult = await CheckAdminRole(boardId);
-            if (!authorizationRoleResult.Succeeded)
-                throw new ResourceNotFoundException("No Access");
+            var board = await GetBoard(boardId);
+
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Create));
+            if (!authorizationResult.Succeeded)
+                throw new UnauthorizedException("Unauthorized");
 
             var newBoardUser = new BoardUser { BoardId = boardId, UserId = userId };
             newBoardUser.Roles = Roles.User;
@@ -160,24 +149,24 @@ namespace Cabanoss.Core.Service.Impl
 
         public async Task RemoveUserAsync (int boardId, int userId)
         {
-            var authorizationRoleResult = await CheckAdminRole(boardId);
-            if (!authorizationRoleResult.Succeeded)
-                throw new ResourceNotFoundException("No Access");
+            var board = await GetBoard(boardId);
 
-            var boardUser = await _boardUsersBaseRepository.GetFirstAsync(i=>i.BoardId == boardId&& i.UserId ==userId);
-            if (boardUser != null)
-                await _boardUsersBaseRepository.DeleteAsync(boardUser);
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Create));
+            if (!authorizationResult.Succeeded)
+                throw new UnauthorizedException("Unauthorized");
+
+            var boardUser = await CheckBoardMembership(boardId, userId);
+
+            await _boardUsersBaseRepository.DeleteAsync(boardUser);
         }
 
         public async Task UpdateBoardAsync(int boardId, UpdateBoardDto updateBoardDto)
         {
-            var board = await _boardRepository.GetFirstAsync(i=>i.Id == boardId);
-            if(board is null)
-                throw new ResourceNotFoundException("ResourceNotFound");
+            var board = await GetBoard(boardId);
 
-            var authorizationRoleResult = await CheckCreatorRole(boardId);
-            if (!authorizationRoleResult.Succeeded)
-                throw new ResourceNotFoundException("No Access");
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Update));
+            if (!authorizationResult.Succeeded)
+                throw new UnauthorizedException("Unauthorized");
 
             board.Name = updateBoardDto.Name;
             board.UpdatedAt = DateTime.Now;
@@ -186,12 +175,15 @@ namespace Cabanoss.Core.Service.Impl
 
         public async Task SetUserRole (int boardId,int userId, int roles)
         {
-            var authorizationRoleResult = await CheckAdminRole(boardId);
-            if (!authorizationRoleResult.Succeeded)
-                throw new ResourceNotFoundException("No Access");
+            var board = await GetBoard(boardId);
+
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Update));
+            if (!authorizationResult.Succeeded)
+                throw new UnauthorizedException("Unauthorized");
+
             var boardUser = await CheckBoardMembership(boardId, userId);
-            if (boardUser == null || boardUser.Roles == Roles.Creator)
-                throw new ResourceNotFoundException("ResourceNotFound");
+            if (boardUser.Roles == Roles.Creator)
+                throw new UnauthorizedException("Unauthorized");
 
             switch (roles)
             {
@@ -204,7 +196,7 @@ namespace Cabanoss.Core.Service.Impl
                     await _boardUsersBaseRepository.UpdateAsync(boardUser);
                     break;
                 default:
-                    throw new ResourceNotFoundException("ResourceNotFound");
+                    throw new ConflictExceptions("Use 0 (Admin) or 1 (User) to set role");
             }
         }
 

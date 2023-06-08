@@ -44,26 +44,15 @@ namespace Cabanoss.Core.Service.Impl
                 throw new ResourceNotFoundException("Resource Not Found");
             return board;
         }
-        private async Task CheckBoardMembership(Board board)
-        {
-            if (board is null)
-                throw new ResourceNotFoundException("Resource Not Found");
-
-            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new MembershipRequirements());
-            if (!authorizationResult.Succeeded)
-                throw new ResourceNotFoundException("no access");
-        }
-        private async Task<AuthorizationResult> CheckAdminRole(Board board)
-        {
-            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new AdminRoleRequirements());
-            return authorizationResult;
-        }
         #endregion
 
         public async Task<List<ResponseCommentDto>> GetComments(int cardId)
         {
             var board = await GetBoardByCardId(cardId);
-            await CheckBoardMembership(board);
+
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Read));
+            if (!authorizationResult.Succeeded)
+                throw new UnauthorizedException("Unauthorized");
 
             var cardComments = await _commentRepository.GetAllAsync(p => p.CardId == cardId);
             var cardDtoComments = new List<ResponseCommentDto>();
@@ -85,7 +74,9 @@ namespace Cabanoss.Core.Service.Impl
         public async Task<ResponseCommentDto> GetComment(int commentId)
         {
             var board = await GetBoardByCommentId(commentId);
-            await CheckBoardMembership(board);
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Read));
+            if (!authorizationResult.Succeeded)
+                throw new UnauthorizedException("Unauthorized");
 
             var comment = await _commentRepository.GetFirstAsync(p => p.Id == commentId);
             if (comment is null)
@@ -103,7 +94,9 @@ namespace Cabanoss.Core.Service.Impl
         public async Task AddComment(int cardId, string text)
         {
             var board = await GetBoardByCardId(cardId);
-            await CheckBoardMembership(board);
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Read));
+            if (!authorizationResult.Succeeded)
+                throw new UnauthorizedException("Unauthorized");
 
             var userId = (int)_httpUserContextService.UserId;
 
@@ -121,34 +114,32 @@ namespace Cabanoss.Core.Service.Impl
         {
             var board = await GetBoardByCommentId(commentId);
 
-            await CheckBoardMembership(board);
-            var adminAuthorization = await CheckAdminRole(board);
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Update));
 
             var comment = await _commentRepository.GetFirstAsync(p => p.Id == commentId);
+            if (comment is null)
+                throw new ResourceNotFoundException("Reosurce not found");
 
-            var userId = (int)_httpUserContextService.UserId;
-            if (userId == comment.UserId || adminAuthorization.Succeeded)
+            if ((int)_httpUserContextService.UserId == comment.UserId || authorizationResult.Succeeded)
             {
                 comment.Text = text;
                 await _commentRepository.UpdateAsync(comment);
             }
             else
-                throw new ResourceNotFoundException("No Access");
+                throw new UnauthorizedException("Unauthorized");
         }
         public async Task DeleteComment(int commentId)
         {
             var board = await GetBoardByCommentId(commentId);
 
-            await CheckBoardMembership(board);
-            var adminAuthorization = await CheckAdminRole(board);
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Delete));
 
             var comment = await _commentRepository.GetFirstAsync(p => p.Id == commentId);
 
-            var userId = (int)_httpUserContextService.UserId;
-            if (userId == comment.UserId || adminAuthorization.Succeeded)
+            if ((int)_httpUserContextService.UserId == comment.UserId || authorizationResult.Succeeded)
                 await _commentRepository.DeleteAsync(comment);
             else
-                throw new ResourceNotFoundException("No Access");
+                throw new UnauthorizedException("Unauthorized");
         }
     }
 }

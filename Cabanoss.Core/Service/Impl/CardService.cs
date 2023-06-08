@@ -51,27 +51,12 @@ namespace Cabanoss.Core.Service.Impl
                 throw new ResourceNotFoundException("Resource not found");
             return board;
         }
-        private async System.Threading.Tasks.Task<AuthorizationResult> CheckBoardMembership(int cardId)
-        {
-            var board = await GetBoard(cardId);
-            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new MembershipRequirements());
-            return authorizationResult;
-        }
         private async System.Threading.Tasks.Task CheckBoardMembership(int cardId, int userId)
         {
             var board = await GetBoard(cardId);
             var user = board.BoardUsers.FirstOrDefault(x => x.UserId == userId);
             if (user == null)
                 throw new UnauthorizedException("the user you want to add does not belong to the table or does not exist");
-        }
-        private async Task<AuthorizationResult> CheckAdminRole(int BoardId)
-        {
-            var board = await _boardRepository.GetFirstAsync(i => i.Id == BoardId, i => i.BoardUsers);
-            if (board is null)
-                throw new ResourceNotFoundException("Resource Not Found");
-
-            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new AdminRoleRequirements());
-            return authorizationResult;
         }
         #endregion
 
@@ -81,9 +66,9 @@ namespace Cabanoss.Core.Service.Impl
             if (board is null)
                 throw new ResourceNotFoundException("Resource Not Found");
 
-            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new MembershipRequirements());
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Read));
             if (!authorizationResult.Succeeded)
-                throw new ResourceNotFoundException("no access");
+                throw new UnauthorizedException("Unauthorized");
 
             var lists = await _cardRepository.GetAllAsync(p => p.ListId == listId);
             var listsDto = _mapper.Map<List<CardDto>>(lists);
@@ -92,13 +77,11 @@ namespace Cabanoss.Core.Service.Impl
 
         public async Task<CardDto> GetCard(int cardId)
         {
-            var board = await _boardRepository.GetFirstAsync(board => board.Lists.Any(list => list.Cards.Any(card => card.Id == cardId)), i => i.BoardUsers);
-            if (board is null)
-                throw new ResourceNotFoundException("Resource Not Found");
+            var board = await GetBoard(cardId);
 
-            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new MembershipRequirements());
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Read));
             if (!authorizationResult.Succeeded)
-                throw new ResourceNotFoundException("no access");
+                throw new UnauthorizedException("Unauthorized");
 
             var card = await GetCardById(cardId);
             var cardDto = _mapper.Map<CardDto>(card);
@@ -111,10 +94,11 @@ namespace Cabanoss.Core.Service.Impl
             if (board is null)
                 throw new ResourceNotFoundException("Resource Not Found");
 
-            var authorizationResult = await CheckAdminRole(board.Id);
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Create));
             if (!authorizationResult.Succeeded)
-                throw new ResourceNotFoundException("No Access");
-            if(cardId == null)
+                throw new UnauthorizedException("Unauthorized");
+
+            if (cardId == null)
             {
                 Card card = new Card
                 {
@@ -138,13 +122,11 @@ namespace Cabanoss.Core.Service.Impl
 
         public async Task DeleteCard(int cardId)
         {
-            var board = await _boardRepository.GetFirstAsync(board => board.Lists.Any(list => list.Cards.Any(card => card.Id == cardId)), i => i.BoardUsers);
-            if (board is null)
-                throw new ResourceNotFoundException("Resource Not Found");
+            var board = await GetBoard(cardId);
 
-            var authorizationResult = await CheckAdminRole(board.Id);
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Create));
             if (!authorizationResult.Succeeded)
-                throw new ResourceNotFoundException("No Access");
+                throw new UnauthorizedException("Unauthorized");
 
             var card = await GetCardById(cardId);
             await _cardRepository.DeleteAsync(card);
@@ -152,13 +134,11 @@ namespace Cabanoss.Core.Service.Impl
 
         public async Task UpdateCard(int cardId, UpdateCardDto createCard)
         {
-            var board = await _boardRepository.GetFirstAsync(board => board.Lists.Any(list => list.Cards.Any(card => card.Id == cardId)), i => i.BoardUsers);
-            if (board is null)
-                throw new ResourceNotFoundException("Resource Not Found");
+            var board = await GetBoard(cardId);
 
-            var authorizationResult = await CheckAdminRole(board.Id);
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Update));
             if (!authorizationResult.Succeeded)
-                throw new ResourceNotFoundException("No Access");
+                throw new UnauthorizedException("Unauthorized");
 
             var card = await GetCardById(cardId);
 
@@ -174,13 +154,11 @@ namespace Cabanoss.Core.Service.Impl
 
         public async Task SetDeadline(int cardId, DateOnly date)
         {
-            var board = await _boardRepository.GetFirstAsync(board => board.Lists.Any(list => list.Cards.Any(card => card.Id == cardId)), i => i.BoardUsers);
-            if (board is null)
-                throw new ResourceNotFoundException("Resource Not Found");
+            var board = await GetBoard(cardId);
 
-            var authorizationResult = await CheckAdminRole(board.Id);
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Update));
             if (!authorizationResult.Succeeded)
-                throw new ResourceNotFoundException("No Access");
+                throw new UnauthorizedException("Unauthorized");
 
             var card = await GetCardById(cardId);
 
@@ -191,7 +169,11 @@ namespace Cabanoss.Core.Service.Impl
         //For members
         public async Task<List<ResponseUserDto>> GetCardUsers(int cardId)
         {
-            await CheckBoardMembership(cardId);
+            var board = await GetBoard(cardId);
+
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Read));
+            if (!authorizationResult.Succeeded)
+                throw new UnauthorizedException("Unauthorized");
 
             var cardUsers = await _userRepository.GetAllAsync(cu=>cu.CardUsers.Any(cu=>cu.CardId == cardId));
             if (cardUsers == null)
@@ -209,7 +191,8 @@ namespace Cabanoss.Core.Service.Impl
                 throw new ConflictExceptions("the object is in the resource");
 
             var board = await GetBoard(cardId);
-            var authorizationResult = await CheckAdminRole(board.Id);
+
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Update));
             if (!authorizationResult.Succeeded)
                 throw new UnauthorizedException("Unauthorized");
 
@@ -226,7 +209,8 @@ namespace Cabanoss.Core.Service.Impl
         public async Task DeleteUserFromCard(int cardId, int userId)
         {
             var board = await GetBoard(cardId);
-            var authorizationResult = await CheckAdminRole(board.Id);
+
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Delete));
             if (!authorizationResult.Succeeded)
                 throw new UnauthorizedException("Unauthorized");
 
