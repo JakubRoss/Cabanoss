@@ -48,13 +48,13 @@ namespace Cabanoss.Core.Service.Impl
         }
 
         #region nieuzywane
-        public async Task AddWorkspaceAsync()
+        public async Task AddWorkspaceAsync(User user)
         {
             var workspaceDto = new WorkspaceDto
             {
-                Name = $"{_httpUserContextService.UserLogin} Workspace",
+                Name = $"{user.Login} Workspace",
                 CreatedAt = DateTime.Now,
-                UserId = (int)_httpUserContextService.UserId,
+                UserId = user.Id,
             };
             var workspace = _mapper.Map<Workspace>(workspaceDto);
             await _workspaceBaserepository.AddAsync(workspace);

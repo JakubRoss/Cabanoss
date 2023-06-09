@@ -89,9 +89,9 @@ namespace Cabanoss.Core.Service.Impl
             var hashedPassword = _passwordHasher.HashPassword(user, userDto.Password);
             user.PasswordHash = hashedPassword;
             user.CreatedAt = DateTime.Now;
-            await _userBase.AddAsync(user);
+            var newUser = await _userBase.AddAsync(user);
 
-            await _workspaceBussiness.AddWorkspaceAsync();
+            await _workspaceBussiness.AddWorkspaceAsync(newUser);
         }
         public async Task<UserDto> GetUserAsync()
         {

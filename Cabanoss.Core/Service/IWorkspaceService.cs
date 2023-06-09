@@ -1,4 +1,5 @@
-﻿using Cabanoss.Core.Model.Workspace;
+﻿using Cabanoss.Core.Data.Entities;
+using Cabanoss.Core.Model.Workspace;
 
 namespace Cabanoss.Core.Service
 {
@@ -6,6 +7,6 @@ namespace Cabanoss.Core.Service
     {
         Task<WorkspaceDto> GetUserWorkspaceAsync();
         Task<WorkspaceDto> UpdateWorkspaceAsync(UpdateWorkspaceDto updateWorkspaceDto);
-        Task AddWorkspaceAsync();
+        Task AddWorkspaceAsync(User user);
     }
 }
