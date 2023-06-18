@@ -6,7 +6,6 @@ using Cabanoss.Core.Exceptions;
 using Cabanoss.Core.Model.Board;
 using Cabanoss.Core.Repositories;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
 
 namespace Cabanoss.Core.Service.Impl
 {
@@ -37,7 +36,7 @@ namespace Cabanoss.Core.Service.Impl
             _httpUserContextService = httpUserContextService;
         }
         #region utils
-        private async System.Threading.Tasks.Task<BoardUser> CheckBoardMembership(int boardId, int userId)
+        private async System.Threading.Tasks.Task<BoardUser> CheckBoardMembership(int boardId, int? userId)
         {
             var boardUser = await _boardUsersBaseRepository.GetFirstAsync(i => i.BoardId == boardId && i.UserId == userId);
             if (boardUser == null)
@@ -150,14 +149,13 @@ namespace Cabanoss.Core.Service.Impl
         public async Task RemoveUserAsync (int boardId, int userId)
         {
             var board = await GetBoard(boardId);
+            var boardUserToRemove = await CheckBoardMembership(boardId, userId);
 
-            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Create));
-            if (!authorizationResult.Succeeded)
+            var authorizationResult = await _authorizationService.AuthorizeAsync(_httpUserContextService.User, board, new ResourceOperationRequirement(ResourceOperations.Delete));
+            if ((authorizationResult.Succeeded && boardUserToRemove.Roles !=Roles.Creator) || (_httpUserContextService.UserId == userId && boardUserToRemove.Roles !=Roles.Creator))
+                await _boardUsersBaseRepository.DeleteAsync(boardUserToRemove);
+            else
                 throw new UnauthorizedException("Unauthorized");
-
-            var boardUser = await CheckBoardMembership(boardId, userId);
-
-            await _boardUsersBaseRepository.DeleteAsync(boardUser);
         }
 
         public async Task UpdateBoardAsync(int boardId, UpdateBoardDto updateBoardDto)
